@@ -1,0 +1,17 @@
+{
+    "classes": [
+        {
+            "title": "feetL",
+            "shape": "bitmap",
+            "color": "#2431A8",
+            "geometry_config": {}
+        },
+        {
+            "title": "feetR",
+            "shape": "bitmap",
+            "color": "#D7EA06",
+            "geometry_config": {}
+        }
+    ],
+    "tags": []
+}
