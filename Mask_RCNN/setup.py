@@ -43,6 +43,7 @@ setup(
     install_requires=install_reqs,
     include_package_data=True,
     python_requires='>=3.4',
+    zip_safe= False,
     long_description="""This is an implementation of Mask R-CNN on Python 3, Keras, and TensorFlow. 
 The model generates bounding boxes and segmentation masks for each instance of an object in the image. 
 It's based on Feature Pyramid Network (FPN) and a ResNet101 backbone.""",
