@@ -1,6 +1,6 @@
 """
 Mask R-CNN
-Train on the toy feetL dataset and implement color splash effect.
+Train on the toy foots dataset and implement color splash effect.
 
 Copyright (c) 2018 Matterport, Inc.
 Licensed under the MIT License (see LICENSE for details)
@@ -12,19 +12,19 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
        the command line as such:
 
     # Train a new model starting from pre-trained COCO weights
-    python3 feetL.py train --dataset=/path/to/feetL/dataset --weights=coco
+   python foots.py train --dataset=/Users/usuario/Developer/foots_model/dataset  --weights=coco
 
     # Resume training a model that you had trained earlier
-    python3 feetL.py train --dataset=/path/to/feetL/dataset --weights=last
+    python3 foots.py train --dataset=/path/to/foots/dataset --weights=last
 
     # Train a new model starting from ImageNet weights
-    python3 feetL.py train --dataset=/path/to/feetL/dataset --weights=imagenet
+    python3 foots.py train --dataset=/path/to/foots/dataset --weights=imagenet
 
     # Apply color splash to an image
-    python3 feetL.py splash --weights=/path/to/weights/file.h5 --image=<URL or path to file>
+    python3 foots.py splash --weights=/path/to/weights/file.h5 --image=<URL or path to file>
 
     # Apply color splash to video using the last weights you trained
-    python3 feetL.py splash --weights=last --video=<URL or path to file>
+    python3 foots.py splash --weights=last --video=<URL or path to file>
 """
 
 import os
@@ -61,14 +61,14 @@ class FootsConfig(Config):
     Derives from the base Config class and overrides some values.
     """
     # Give the configuration a recognizable name
-    NAME = "foots"
+    NAME = "feet"
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
     IMAGES_PER_GPU = 2
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 2  # Background + feetL
+    NUM_CLASSES = 1 + 2  # Background + foots
 
     # Number of training steps per epoch
     STEPS_PER_EPOCH = 100
@@ -84,13 +84,13 @@ class FootsConfig(Config):
 class FootsDataset(utils.Dataset):
 
     def load_foots(self, dataset_dir, subset):
-        """Load a subset of the feetL dataset.
+        """Load a subset of the feet dataset.
         dataset_dir: Root directory of the dataset.
         subset: Subset to load: train or val
         """
         # Add classes. We have only one class to add.
-        self.add_class("object", 1, "feetL")
-        self.add_class("object", 2, "feetR")
+        self.add_class("feet", 1, "feetL")
+        self.add_class("feet", 2, "feetR")
 
         # Train or validation dataset?
         assert subset in ["train", "val"]
@@ -113,8 +113,8 @@ class FootsDataset(utils.Dataset):
         # We mostly care about the x and y coordinates of each region
         # Note: In VIA 2.0, regions was changed from a dict to a list.
         #annotations = json.load(open(os.path.join(dataset_dir, "via_region_data.json")))
-        annotations1 = json.load(open(os.path.join(dataset_dir, "via_region_data.json")))
-        annotations = list(annotations1.values())  # don't need the dict keys
+        annotations = json.load(open(os.path.join(dataset_dir, "via_region_data.json")))
+        annotations = list(annotations.values())  # don't need the dict keys
 
         # The VIA tool saves images in the JSON even if they don't have any
         # annotations. Skip unannotated images.
@@ -125,19 +125,20 @@ class FootsDataset(utils.Dataset):
             
             polygons = [r['shape_attributes'] for r in a['regions'].values()]
             objects = [s['region_attributes'] for s in a['regions'].values()]
+            class_ids = [int(n['feet']) for n in objects]
             
-            num_ids = []
-            for n in objects:
-                try:
-                    if n['name'] == 'feetL':
-                        num_ids.append(1)
-                    elif n['name'] == 'feetR':
-                        num_ids.append(2)
-                except:
-                    pass
+            # class_ids = []
+            # for n in objects:
+            #     try:
+            #         if n['name'] == 'feetL':
+            #             class_ids.append(1)
+            #         elif n['name'] == 'feetR':
+            #             class_ids.append(2)
+            #     except:
+            #         pass
 
-            #num_ids = [n['name'] for n in objects]
-            print("num_ids:",num_ids)
+            # #num_ids = [n['name'] for n in objects]
+            # print("num_ids:",num_ids)
 
             # load_mask() needs the image size to convert polygons to masks.
             # Unfortunately, VIA doesn't include it in JSON, so we must read
@@ -147,12 +148,12 @@ class FootsDataset(utils.Dataset):
             height, width = image.shape[:2]
 
             self.add_image(
-                "object",  ## for a single class just add the name here
+                "feet",  ## for a single class just add the name here
                 image_id=a['filename'],  # use file name as a unique image id
                 path=image_path,
                 width=width, height=height,
                 polygons=polygons,
-                num_ids=num_ids)
+                class_ids=class_ids)
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
@@ -163,15 +164,15 @@ class FootsDataset(utils.Dataset):
         """
         # If not a object dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
-        if image_info["source"] != "object":
+        if image_info["source"] != "feet":
             return super(self.__class__, self).load_mask(image_id)
-
+        class_ids = image_info['class_ids']    
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
         info = self.image_info[image_id]
-        if info["source"] != "object":
-            return super(self.__class__, self).load_mask(image_id)
-        num_ids = info['num_ids']
+        # if info["source"] != "object":
+        #     return super(self.__class__, self).load_mask(image_id)
+        # num_ids = info['num_ids']
         mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
                         dtype=np.uint8)
         for i, p in enumerate(info["polygons"]):
@@ -181,13 +182,14 @@ class FootsDataset(utils.Dataset):
 
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
-        num_ids = np.array(num_ids, dtype=np.int32)
-        return mask, num_ids
+        print("info['class_ids']=", info['class_ids'])
+        class_ids = np.array(class_ids, dtype=np.int32)
+        return mask, class_ids
 
     def image_reference(self, image_id):
         """Return the path of the image."""
         info = self.image_info[image_id]
-        if info["source"] == "object":
+        if info["source"] == "feet":
             return info["path"]
         else:
             super(self.__class__, self).image_reference(image_id)
@@ -226,12 +228,20 @@ def color_splash(image, mask):
     # has 3 RGB channels, though.
     gray = skimage.color.gray2rgb(skimage.color.rgb2gray(image)) * 255
     # We're treating all instances as one, so collapse the mask into one layer
-    mask = (np.sum(mask, -1, keepdims=True) >= 1)
+    #mask = (np.sum(mask, -1, keepdims=True) >= 1)
     # Copy color pixels from the original color image where mask is set
-    if mask.shape[0] > 0:
+    # if mask.shape[0] > 0:
+    #     splash = np.where(mask, image, gray).astype(np.uint8)
+    # else:
+    #     splash = gray
+    # return splash
+    
+    if mask.shape[-1] > 0:
+        # We're treating all instances as one, so collapse the mask into one layer
+        mask = (np.sum(mask, -1, keepdims=True) >= 1)
         splash = np.where(mask, image, gray).astype(np.uint8)
     else:
-        splash = gray
+        splash = gray.astype(np.uint8)
     return splash
 
 
