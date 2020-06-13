@@ -12,8 +12,8 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
        the command line as such:
 
     # Train a new model starting from pre-trained COCO weights
-   python foots.py train --dataset=/Users/usuario/Developer/foots_model/dataset  --weights=coco
-
+    python foots.py train --dataset=/Users/usuario/Developer/foots_model/dataset  --weights=coco
+    python foots.py train --dataset=//Users/ACEBALLOS/Developer/FootsModel/dataset --weights=coco
     # Resume training a model that you had trained earlier
     python3 foots.py train --dataset=/path/to/foots/dataset --weights=last
 
@@ -89,8 +89,8 @@ class FootsDataset(utils.Dataset):
         subset: Subset to load: train or val
         """
         # Add classes. We have only one class to add.
-        self.add_class("feet", 1, "feetL")
-        self.add_class("feet", 2, "feetR")
+        self.add_class("feet", 1, "foot_left")
+        self.add_class("feet", 2, "foot_right")
 
         # Train or validation dataset?
         assert subset in ["train", "val"]
