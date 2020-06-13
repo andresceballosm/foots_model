@@ -182,7 +182,7 @@ class FootsDataset(utils.Dataset):
 
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
-        print("info['class_ids']=", info['class_ids'])
+        #print("info['class_ids']=", info['class_ids'])
         class_ids = np.array(class_ids, dtype=np.int32)
         return mask, class_ids
 
